@@ -1,0 +1,155 @@
+📘 GPU Image Pipeline — Dev Log (Day 1)
+
+Date: 18-01-2026
+Status: Foundations + Tooling complete
+
+1. Project Skeleton
+
+Created clean repo structure with:
+
+include/
+
+src/
+
+src/cpu
+
+src/gpu
+
+Set up CMake-based build system
+
+Verified build + run with a minimal main.cpp
+
+Learned Windows + Visual Studio multi-config behavior (Debug/Release folders)
+
+2. Core Data Model (Image)
+
+Defined a POD-style Image struct:
+
+struct Image {
+    int width;
+    int height;
+    int channels;
+    uint8_t* data;
+};
+
+
+Image memory is:
+
+linear
+
+row-major
+
+interleaved by channels
+
+Chose uint8_t* for GPU friendliness and explicit memory control
+
+3. Memory Ownership Model (Very Important)
+
+Introduced image_utils.hpp/.cpp
+
+Implemented:
+
+create_image(width, height, channels)
+
+free_image(Image&)
+
+Key rule established:
+
+The caller owns image memory.
+Processing functions never allocate or free memory.
+
+Learned why:
+
+prevents leaks & double-free
+
+simplifies pipelines
+
+matches CUDA execution model
+
+4. Debugging & Tooling Lessons
+
+Fixed C++ cascade errors caused by:
+
+struct name mismatch (image vs Image)
+
+Learned:
+
+compiler > editor squiggles
+
+first error is the real error
+
+Fixed IntelliSense using:
+
+CMAKE_EXPORT_COMPILE_COMMANDS
+
+correct source file listing in CMake
+
+5. OpenCV Setup (Big One)
+
+Verified OpenCV was not correctly installed initially
+
+Installed OpenCV properly via vcpkg
+
+vcpkg install opencv4:x64-windows
+
+vcpkg integrate install
+
+Learned:
+
+Python OpenCV ≠ C++ OpenCV
+
+CMake only trusts OpenCVConfig.cmake
+
+6. vcpkg + CMake Integration
+
+Fixed find_package(OpenCV) failure by:
+
+using vcpkg toolchain file
+
+Key command learned:
+
+cmake .. -DCMAKE_TOOLCHAIN_FILE=D:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+
+Understood difference between:
+
+Visual Studio integration
+
+CLI CMake configuration
+
+7. Automation (Future-Proofing)
+
+Added CMakePresets.json
+
+Fully automated:
+
+vcpkg toolchain
+
+OpenCV discovery
+
+New workflow:
+
+cmake --preset debug
+cmake --build --preset debug
+
+
+No more manual toolchain flags
+
+Reproducible, clean builds
+
+8. Current State
+
+✅ Build system stable
+
+✅ OpenCV 4.12.0 detected
+
+✅ Image + memory model locked
+
+✅ Tooling pain finished
+
+⏭️ Ready for STEP 4: Image I/O bridge (OpenCV ↔ Image)
+
+9. Big Takeaway
+
+Today was not about image processing.
+It was about owning the environment, understanding memory, and building foundations the GPU code will rely on.

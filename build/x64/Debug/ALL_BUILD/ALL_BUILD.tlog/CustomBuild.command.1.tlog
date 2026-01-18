@@ -1,0 +1,10 @@
+^D:\GPU-IMG-PIPELINE\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/gpu-img-pipeline -BD:/gpu-img-pipeline/build --check-stamp-file D:/gpu-img-pipeline/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
