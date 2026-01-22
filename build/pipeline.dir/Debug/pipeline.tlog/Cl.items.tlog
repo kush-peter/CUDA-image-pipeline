@@ -1,2 +1,3 @@
 D:\gpu-img-pipeline\src\main.cpp;D:\gpu-img-pipeline\build\pipeline.dir\Debug\main.obj
 D:\gpu-img-pipeline\src\image_utils.cpp;D:\gpu-img-pipeline\build\pipeline.dir\Debug\image_utils.obj
+D:\gpu-img-pipeline\src\cpu\grayscale_cpu.cpp;D:\gpu-img-pipeline\build\pipeline.dir\Debug\grayscale_cpu.obj

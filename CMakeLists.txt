@@ -8,7 +8,8 @@ find_package(OpenCV REQUIRED)
 
 add_executable(pipeline
     src/main.cpp
-    src/image_utils.cpp    
+    src/image_utils.cpp
+    src/cpu/grayscale_cpu.cpp
 )
 
 target_include_directories(pipeline PRIVATE include)

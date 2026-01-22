@@ -7,6 +7,9 @@
     <ClCompile Include="D:\gpu-img-pipeline\src\image_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\gpu-img-pipeline\src\cpu\grayscale_cpu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\gpu-img-pipeline\CMakeLists.txt" />

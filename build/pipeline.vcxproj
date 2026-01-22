@@ -427,6 +427,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <ItemGroup>
     <ClCompile Include="D:\gpu-img-pipeline\src\main.cpp" />
     <ClCompile Include="D:\gpu-img-pipeline\src\image_utils.cpp" />
+    <ClCompile Include="D:\gpu-img-pipeline\src\cpu\grayscale_cpu.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

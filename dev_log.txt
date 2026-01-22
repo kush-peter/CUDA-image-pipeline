@@ -153,3 +153,160 @@ Reproducible, clean builds
 
 Today was not about image processing.
 It was about owning the environment, understanding memory, and building foundations the GPU code will rely on.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+📘 GPU Image Pipeline — Dev Log (Day 2)
+
+Date: 22-01-2026
+Focus: Image I/O bridge + CPU Grayscale (first real algorithm)
+
+1. Context Reload
+
+Re-established project state after a break
+
+Confirmed:
+
+CMake presets working
+
+vcpkg toolchain active
+
+OpenCV 4.12.0 detected correctly
+
+Verified build + run pipeline before adding new logic
+
+2. STEP 4 — Image I/O Bridge (Deep Understanding)
+
+Implemented explicit translation between:
+
+cv::Mat (OpenCV)
+
+custom Image struct
+
+Added:
+
+image_from_cvmat(const cv::Mat&)
+
+cvmat_from_image(const Image&)
+
+Used raw memcpy based on:
+
+row-major layout
+
+interleaved channels
+
+contiguous memory from cv::imread
+
+Verified correctness using roundtrip test:
+
+file → cv::Mat → Image → cv::Mat → file
+
+
+Output image identical to input (expected and correct)
+
+Gained confidence that:
+
+memory layout
+
+channel handling
+
+byte counts
+are all correct
+
+3. Architectural Correction
+
+Enforced clean separation:
+
+src/image_utils.cpp  → memory + conversion utilities
+src/cpu/             → CPU reference algorithms
+src/gpu/             → CUDA kernels (future)
+
+
+Moved grayscale logic out of image_utils.cpp
+
+Created:
+
+src/cpu/grayscale_cpu.cpp
+
+4. STEP 5 — CPU Grayscale Conversion (Major Milestone)
+
+Implemented grayscale_cpu(const Image&, Image&)
+
+Design principles followed:
+
+no allocation inside algorithm
+
+caller owns input/output memory
+
+explicit index calculation
+
+deterministic float math
+
+Used standard luminance formula:
+
+gray = 0.299R + 0.587G + 0.114B
+
+
+Loop structure:
+
+nested for (y, x)
+
+one pixel per iteration
+
+Explicit linear indexing:
+
+rgb_idx  = (y * width + x) * 3
+gray_idx = (y * width + x)
+
+5. STEP 5 Test Harness
+
+Updated main.cpp to:
+
+load RGB image
+
+convert to Image
+
+allocate grayscale output
+
+run grayscale_cpu
+
+save gray_cpu.png
+
+Verified:
+
+image dimensions unchanged
+
+output visually grayscale
+
+no memory leaks or crashes
+
+6. Conceptual Breakthrough
+
+Clearly understood why CPU and future CUDA results will match:
+
+grayscale is embarrassingly parallel
+
+each pixel is independent
+
+no shared state
+
+no order dependence
+
+Identified this as the ideal first CUDA kernel
+
+7. Current State
+
+✅ Image I/O bridge fully understood and verified
+
+✅ CPU grayscale reference implementation complete
+
+✅ Memory ownership model enforced
+
+✅ Ready for GPU implementation
+
+⏭️ Next: STEP 6 — CUDA Grayscale Kernel
+
+8. Key Takeaway
+
+Today was the transition from “plumbing” to real computation.
+The pipeline is now trustworthy, which makes GPU acceleration a mechanical step instead of a guessing game.
