@@ -12,6 +12,10 @@ Image image_from_cvmat(const cv::Mat& mat){
     size_t size = static_cast<size_t>(img.width) * static_cast<size_t>(img.height) * static_cast<size_t>(img.channels);
 
     img.data = static_cast<uint8_t*>(std::malloc(size));
+    if (!mat.isContinuous()) {
+        throw std::runtime_error("cv::Mat is not continuous");
+    }
+
     std::memcpy(img.data, mat.data, size);
     return img;
 }

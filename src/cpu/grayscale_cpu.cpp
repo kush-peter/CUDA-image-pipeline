@@ -17,11 +17,11 @@ void grayscale_cpu(const Image& input, Image& output){
             int rgb_idx = (y*width+x) * 3;
             int gray_idx = (y*width+x) * 1;
 
-            uint8_t r = input.data[rgb_idx + 0];
+            uint8_t b = input.data[rgb_idx + 0];
             uint8_t g = input.data[rgb_idx + 1];
-            uint8_t b = input.data[rgb_idx + 2];
+            uint8_t r = input.data[rgb_idx + 2]; //RGB order in OpenCV is BGR
 
-            float gray_f = 0.3f * r + 0.6f * g + 0.1f * b;
+            float gray_f = 0.299f * r + 0.587f * g + 0.114f * b;
 
             output.data[gray_idx] = static_cast<uint8_t>(gray_f);
         }

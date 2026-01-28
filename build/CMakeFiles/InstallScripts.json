@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"D:/gpu-img-pipeline/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

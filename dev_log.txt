@@ -310,3 +310,232 @@ Identified this as the ideal first CUDA kernel
 
 Today was the transition from “plumbing” to real computation.
 The pipeline is now trustworthy, which makes GPU acceleration a mechanical step instead of a guessing game.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+📘 GPU Image Pipeline — Dev Log (Day 2)
+
+Date: 28-01-2026
+Focus: CPU reference pipeline + first validated CUDA kernel
+
+1. Context Reload & Environment Stabilization
+
+Resumed project with a strong focus on correctness and understanding over speed.
+
+Key environment decisions and confirmations:
+
+Migrated development to Ubuntu after repeated Windows + CUDA + CMake friction
+
+Set up:
+
+NVCC / CUDA Toolkit
+
+OpenCV
+
+build essentials, Ninja, VS Code
+
+Confirmed:
+
+Project builds cleanly
+
+Executable runs correctly
+
+Toolchain is stable and predictable
+
+This eliminated tooling noise and allowed full focus on systems concepts.
+
+2. Image Abstraction & Memory Ownership (Revisited)
+
+Reinforced the core data model:
+
+Image struct as the single source of truth
+
+Explicit ownership rules:
+
+caller allocates
+
+caller frees
+
+algorithms never allocate
+
+This discipline was maintained across CPU and GPU code.
+
+3. Image I/O Bridge (CPU ↔ OpenCV)
+
+Implemented and verified explicit conversion between:
+
+cv::Mat (OpenCV)
+
+custom Image struct
+
+Functions involved:
+
+image_from_cvmat(const cv::Mat&)
+
+cvmat_from_image(const Image&)
+
+Key details understood and verified:
+
+Row-major layout
+
+Interleaved channels
+
+Contiguous memory requirement
+
+Exact byte count during memcpy
+
+Used round-trip testing to confirm correctness:
+
+file → cv::Mat → Image → cv::Mat → file
+
+
+Resulting image matched input exactly, confirming correctness of memory layout and conversions.
+
+4. CPU Grayscale Implementation (Reference Algorithm)
+
+Implemented grayscale_cpu(const Image&, Image&) as the golden reference.
+
+Design principles followed:
+
+No allocation inside the algorithm
+
+Explicit bounds and format checks
+
+Deterministic computation
+
+Clear indexing logic
+
+Assumed internal convention:
+
+3-channel images are BGR (matching OpenCV)
+
+1-channel images are grayscale
+
+Used standard luminance formula:
+
+gray = 0.299R + 0.587G + 0.114B
+
+
+Loop structure:
+
+Nested for (y, x)
+
+One pixel per iteration
+
+Explicit linear indexing:
+
+rgb_idx = (y * width + x) * 3
+
+gray_idx = (y * width + x)
+
+5. CUDA Grayscale Kernel (First Correct GPU Kernel)
+
+Wrote a naive CUDA grayscale kernel from scratch:
+
+One thread → one pixel
+
+Global memory only
+
+No shared memory
+
+No optimizations
+
+Explicit bounds checking
+
+Kernel design mirrored CPU logic exactly, enabling direct validation.
+
+Host-side CUDA code included:
+
+cudaMalloc
+
+cudaMemcpy (H→D, D→H)
+
+Kernel launch with 2D grid/block
+
+cudaDeviceSynchronize
+
+cudaFree
+
+Integrated CUDA source into CMake explicitly after initial linker errors.
+
+6. CPU vs GPU Validation (Major Milestone)
+
+Added correctness validation:
+
+Pixel-by-pixel comparison between CPU and GPU outputs
+
+Logged mismatch count
+
+Results:
+
+Mismatch count: 0
+
+GPU output visually identical to CPU output
+
+This confirmed:
+
+Correct thread-to-pixel mapping
+
+Correct memory transfers
+
+Correct kernel logic
+
+Correct host/device coordination
+
+7. Initial Timing Experiments (Insightful Results)
+
+Added a simple wall-clock timer to measure:
+
+CPU grayscale time
+
+GPU grayscale time (including allocation + transfers)
+
+Results observed:
+
+Small image (~600×400):
+
+CPU faster than GPU
+
+Larger image (~2400×1600):
+
+CPU time scaled linearly
+
+GPU time largely dominated by allocation + transfer overhead
+
+Key realization:
+
+GPU kernel itself is fast
+
+cudaMalloc / cudaFree dominate runtime
+
+Naive GPU usage hides true performance
+
+This set the stage for learning proper GPU execution patterns.
+
+8. Conceptual Breakthrough
+
+Key understandings solidified today:
+
+GPU correctness must be established before performance discussions
+
+Grayscale is embarrassingly parallel and ideal for first CUDA kernel
+
+GPU overhead dominates when allocation and transfers are done per call
+
+Performance issues observed are architectural, not kernel mistakes
+
+9. Current State
+
+✅ Stable Linux + CUDA environment
+✅ Image I/O bridge fully understood
+✅ CPU grayscale reference complete
+✅ First correct CUDA kernel implemented
+✅ CPU ↔ GPU outputs validated
+✅ Basic timing infrastructure in place
+
+⏭️ Next: Refactor GPU code to separate allocation from execution (GPU context), then move into Gaussian blur and shared memory.
+
+10. Key Takeaway
+
+Today marked the transition from “getting CUDA to work” to “understanding how GPU programs should be structured”.
+Correctness is now locked in, making future optimization and more complex kernels a matter of engineering, not guesswork.

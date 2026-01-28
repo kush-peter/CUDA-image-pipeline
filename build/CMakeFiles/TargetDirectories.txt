@@ -1,3 +1,0 @@
-D:/gpu-img-pipeline/build/CMakeFiles/pipeline.dir
-D:/gpu-img-pipeline/build/CMakeFiles/ALL_BUILD.dir
-D:/gpu-img-pipeline/build/CMakeFiles/ZERO_CHECK.dir
