@@ -2,6 +2,8 @@
 #include <opencv2/opencv.hpp>
 #include "image_utils.hpp"
 #include "timer.hpp"
+#include "gpu_context.hpp"
+#include "grayscale_gpu.hpp"
 
 int main(){
 
@@ -14,6 +16,9 @@ int main(){
     //convert OCV image to my struct Image
     Image rgb = image_from_cvmat(input);
     std::cout << "Loaded image: " << rgb.width << "x" << rgb.height << " channels = " << rgb.channels << "\n";
+
+    GrayscaleGPUContext gpu_ctx;
+    grayscale_gpu_init(gpu_ctx, rgb.width, rgb.height);
 
     Image gray = create_image(rgb.width, rgb.height, 1); //allocate output 
     
@@ -29,7 +34,7 @@ int main(){
     cv::Mat output = cvmat_from_image(gray);
     cv::imwrite("data/result_images/gray_cpu.png", output);
 
-    //cleanup
+    
     
 
     std::cout << "Saved gray_cpu.png\n";
@@ -42,7 +47,7 @@ int main(){
 
     gpu_timer.start();
 
-    grayscale_gpu(rgb, gray_gpu);
+    grayscale_gpu_run(gpu_ctx, rgb, gray_gpu);
 
     double gpu_time_ms = gpu_timer.stop_ms();
 
@@ -63,7 +68,9 @@ int main(){
         }
     }
     std::cout << "Total mismatched pixels: " << mismatch << "\n";
-
+    
+    //cleanup
+    grayscale_gpu_destroy(gpu_ctx);
     free_image(rgb);
     free_image(gray);
     free_image(gray_gpu);

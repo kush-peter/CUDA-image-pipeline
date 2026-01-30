@@ -11,7 +11,8 @@ add_executable(pipeline
     src/main.cpp
     src/image_utils.cpp
     src/cpu/grayscale_cpu.cpp
-    src/gpu/grayscale.cu
+    src/gpu/grayscale_gpu.cu
+    src/gpu/grayscale_kernel.cu
 )
 
 set_target_properties(pipeline PROPERTIES
@@ -20,5 +21,7 @@ set_target_properties(pipeline PROPERTIES
 
 target_include_directories(pipeline PRIVATE include)
 target_link_libraries(pipeline PRIVATE ${OpenCV_LIBS})
+target_link_libraries(pipeline PRIVATE cuda)
+
 
 message(STATUS "OpenCV ver: ${OpenCV_VERSION}")
