@@ -313,7 +313,7 @@ The pipeline is now trustworthy, which makes GPU acceleration a mechanical step 
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-📘 GPU Image Pipeline — Dev Log (Day 2)
+📘 GPU Image Pipeline — Dev Log (Day 3)
 
 Date: 28-01-2026
 Focus: CPU reference pipeline + first validated CUDA kernel
@@ -539,3 +539,237 @@ Performance issues observed are architectural, not kernel mistakes
 
 Today marked the transition from “getting CUDA to work” to “understanding how GPU programs should be structured”.
 Correctness is now locked in, making future optimization and more complex kernels a matter of engineering, not guesswork.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+📘 GPU Image Pipeline — Dev Log (Day 4)
+
+Date: 30-01-2026
+Focus: CUDA architecture correction, compilation model clarity, GPU context design, and real performance gains
+
+1. Context
+
+Today’s work was not about adding a new algorithm.
+It was about fixing architecture and understanding why CUDA code behaves the way it does.
+
+I already had:
+
+a working CPU grayscale
+
+a working GPU grayscale
+
+correct output (0 mismatches)
+
+But GPU performance was worse than CPU, which felt wrong.
+
+The goal for today became:
+
+Understand why — and fix it the right way.
+
+2. Major Conceptual Breakthrough: CUDA Compilation Model
+
+Learned and internalized the true separation of concerns in CUDA projects:
+
+Headers (.hpp)
+
+Declarations only
+
+Provide knowledge to the compiler
+
+Do not connect files or implementations
+
+Source files (.cpp, .cu)
+
+Implementations
+
+Compiled as separate translation units
+
+Connected only at link time, not by #include
+
+Critical rule learned:
+
+Headers do not connect .cpp and .cu files.
+CMake + the linker do.
+
+This clarified:
+
+why grayscale_kernel.hpp exists
+
+why .cu files don’t need to include their own headers
+
+why including .cu files is wrong and dangerous
+
+3. File Extension Rule (Very Important)
+
+Hit (and understood) a classic CUDA error:
+
+expected primary-expression before ‘<’ token
+
+
+Root cause:
+
+Kernel launch syntax <<< >>> is not C++
+
+Any file that launches a kernel must be compiled by NVCC
+
+New rule locked in:
+
+If a file contains <<< >>>, it must be a .cu file.
+
+This led to:
+
+Renaming grayscale_gpu.cpp → grayscale_gpu.cu
+
+Clean separation between:
+
+host orchestration
+
+device kernels
+
+4. Architectural Refactor: GPU Context Design
+
+Introduced a GPU context struct to manage device memory lifetime:
+
+struct GrayscaleGPUContext {
+    uint8_t* d_input;
+    uint8_t* d_output;
+    int width;
+    int height;
+};
+
+Designed three explicit lifecycle functions:
+
+grayscale_gpu_init → allocate device memory (once)
+
+grayscale_gpu_run → memcpy + kernel launch (hot path)
+
+grayscale_gpu_destroy → free device memory (once)
+
+Key insight:
+
+Allocating or freeing GPU memory inside the hot path destroys performance.
+
+This mirrors good systems design:
+
+ownership is explicit
+
+lifetime is controlled
+
+execution stays lean
+
+5. Kernel Isolation
+
+Refactored GPU code into clean layers:
+
+grayscale_kernel.cu
+
+device-only code
+
+no allocations
+
+no host logic
+
+pure computation
+
+grayscale_gpu.cu
+
+host-side CUDA logic
+
+kernel launch
+
+memcpy
+
+synchronization
+
+This eliminated:
+
+duplicated allocations
+
+unclear ownership
+
+“do-everything” CUDA files
+
+6. CMake Understanding & Fixes
+
+Clarified multiple CMake concepts:
+
+Difference between:
+
+cmake ..
+
+cmake -S . -B build
+
+Why both work on Ubuntu
+
+Why explicit -S/-B is safer and more scalable
+
+Ensured CMake:
+
+treats .cu files as CUDA
+
+uses NVCC where required
+
+links OpenCV and CUDA runtime correctly
+
+compiles kernels in separate translation units
+
+Final result: clean build, no hacks.
+
+7. The Performance Moment (Payoff)
+Before refactor (alloc + copy + kernel + free every run):
+GPU Grayscale time: ~132 ms
+
+After refactor (allocation once, lean hot path):
+GPU Grayscale time: ~3.4 ms
+CPU Grayscale time: ~27 ms
+Total mismatched pixels: 0
+
+
+Same kernel.
+Same math.
+Same image.
+
+Only architecture changed.
+
+Core realization:
+
+The GPU was never slow.
+The design was.
+
+This was the clearest demonstration so far that:
+
+CUDA performance is dominated by lifetime management
+
+“working CUDA” ≠ “correct CUDA”
+
+8. Key Takeaways (Locked In)
+
+CUDA is not just about kernels — it’s about systems design
+
+Headers are contracts, not connectors
+
+.cu vs .cpp is not cosmetic — it defines the compiler
+
+GPU memory allocation must never be in the hot path
+
+Meaningful benchmarking requires correct architecture first
+
+9. Current State
+
+✅ CPU grayscale complete
+✅ GPU grayscale complete and correct
+✅ Clean separation of host/device code
+✅ Correct CMake configuration
+✅ GPU now significantly faster than CPU
+
+10. What’s Next
+
+With a correct and trustworthy pipeline in place, the next step is:
+
+Gaussian Blur (2D Convolution)
+→ shared memory tiling
+→ memory reuse
+→ where GPU advantages grow dramatically
+
+Summary line for myself:
+
+Today was the day CUDA stopped being “magic code” and became a system I actually understand.
