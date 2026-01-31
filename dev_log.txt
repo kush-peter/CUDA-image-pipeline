@@ -773,3 +773,206 @@ Gaussian Blur (2D Convolution)
 Summary line for myself:
 
 Today was the day CUDA stopped being “magic code” and became a system I actually understand.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+📘 GPU Image Pipeline — Dev Log (Day 5)
+
+Date: 31-01-2026
+Focus: Gaussian Blur — concepts, memory hierarchy, and kernel design (no premature coding)
+
+1. Context & Intent
+
+Today’s goal was explicitly not to rush into CUDA code.
+
+Instead, the focus was to:
+
+deeply understand Gaussian blur as a computation
+
+understand why shared memory is required
+
+design the kernel architecture before touching syntax
+
+This marked a shift from “writing CUDA” to designing GPU algorithms.
+
+2. Why Gaussian Blur Is the Right Next Step
+
+Identified Gaussian blur as the first non-embarrassingly parallel operation in the pipeline.
+
+Key realization:
+
+Each output pixel depends on neighboring input pixels
+
+Threads do not depend on each other’s results, but they reuse the same input data
+
+This introduces data reuse, not data dependency
+
+This makes Gaussian blur the canonical example for learning:
+
+shared memory
+
+tiling
+
+halo regions
+
+synchronization
+
+3. Shared Memory & Tiling — Conceptual Breakthrough
+
+Worked through the naïve implementation and identified the true bottleneck:
+
+redundant global memory loads
+
+not arithmetic
+
+Designed a tiled approach:
+
+Block size: 16×16 output pixels
+
+Kernel size: 3×3
+
+Radius: 1
+
+Shared memory tile: 18×18
+
+Derived this using the rule:
+
+shared_tile = block_size + 2 × radius
+
+Confirmed:
+
+256 output pixels
+
+324 shared memory pixels
+
+68 halo pixels loaded cooperatively per block
+
+This was derived mathematically, not guessed.
+
+4. Halo Ownership & Load Strategy
+
+Chose a border-thread loading strategy:
+
+Interior threads load exactly one pixel
+
+Border threads load extra halo pixels
+
+Corner threads load corner halo pixels
+
+Rationale:
+
+optimize for the common case
+
+minimize unnecessary work
+
+keep load phase structured and readable
+
+This introduced the idea of asymmetric per-thread responsibility, a key GPU design concept.
+
+5. Boundary Handling Decision: Mirror Padding
+
+Chose mirror padding as the boundary strategy.
+
+Reasons:
+
+preserves edge continuity
+
+avoids artificial dark borders
+
+matches industry practice (e.g., OpenCV)
+
+forces correct index reasoning early
+
+Derived and understood mirror index mapping:
+
+v < 0 → -v
+
+v >= limit → 2*limit - v - 2
+
+Key insight:
+
+mirror logic belongs in the load phase
+
+convolution phase should be branch-free and uniform
+
+6. Gaussian Kernel Weights — Demystified
+
+Understood why the 3×3 Gaussian kernel uses:
+
+1 2 1
+2 4 2
+1 2 1
+
+
+Key takeaways:
+
+discrete approximation of a 2D Gaussian
+
+center pixel weighted most
+
+normalized by sum = 16
+
+derived from Pascal’s triangle
+
+separable, enabling future optimization
+
+Extended intuition naturally to 5×5 kernels, recognizing the Pascal pattern without memorization.
+
+7. Full Kernel Designed in Pseudocode (Major Milestone)
+
+Before writing any CUDA code, designed the entire kernel in structured pseudocode, covering:
+
+Thread & global index calculation
+
+Mapping to shared memory with halo offset
+
+Cooperative loading of:
+
+central pixels
+
+edge halos
+
+corner halos
+
+Mandatory synchronization
+
+Branch-free Gaussian convolution
+
+Single global write per thread
+
+At this point, the kernel logic was fully clear and implementation-ready.
+
+8. Meta-Learning: How CUDA Should Be Learned
+
+Reinforced a critical learning philosophy:
+
+If the idea is clear, the code becomes boring — and that’s a good thing.
+
+Today emphasized:
+
+thinking in blocks, not threads
+
+designing for memory hierarchy
+
+separating what from how
+
+refusing to hide complexity inside syntax
+
+9. Current State
+
+✅ Gaussian blur fully understood conceptually
+✅ Shared memory tiling & halo logic designed
+✅ Mirror padding math internalized
+✅ Kernel written line by line
+✅ Ready to wire into code and main pipeline
+
+10. Next Steps
+
+Integrate Gaussian blur into pipeline
+
+Add menu-based dispatcher in main.cpp
+
+Compare grayscale vs Gaussian performance
+
+Key Takeaway (for myself)
+
+Today wasn’t about writing CUDA.
+It was about learning how GPUs want you to think.
