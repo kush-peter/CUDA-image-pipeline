@@ -13,6 +13,8 @@ add_executable(pipeline
     src/cpu/grayscale_cpu.cpp
     src/gpu/grayscale_gpu.cu
     src/gpu/grayscale_kernel.cu
+    src/gpu/gaussian_gpu.cu
+    src/gpu/gaussian_kernel.cu
 )
 
 set_target_properties(pipeline PROPERTIES

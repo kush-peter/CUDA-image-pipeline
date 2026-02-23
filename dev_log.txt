@@ -976,3 +976,191 @@ Key Takeaway (for myself)
 
 Today wasn’t about writing CUDA.
 It was about learning how GPUs want you to think.
+
+📘 GPU Image Pipeline — Dev Log (Day 5)
+
+Date: 21-02-2026 + 23-02-2026
+Focus: Gaussian Blur Integration + Multi-Pass Execution + Pipeline Stabilization
+
+1. Context Reload After 20-Day Break
+
+Resumed the CUDA image pipeline project after a ~20-day pause.
+
+Goals for the session:
+
+Verify build stability
+
+Re-evaluate Gaussian blur kernel
+
+Complete end-to-end Gaussian pipeline
+
+Produce a visible, validated blur output
+
+Confirmed:
+
+Project builds cleanly
+
+GPU grayscale still functioning
+
+No architectural regression
+
+The separation of init/run/destroy in GPU modules proved robust.
+
+2. Gaussian Kernel Stabilization
+
+Reviewed gaussian_kernel.cu.
+
+Fixed critical issues:
+
+❌ Nested __device__ function definition inside kernel
+
+❌ Incorrect top-right halo index
+
+❌ Bottom-right shared memory indexing typo
+
+⚠️ Minor structural improvements (moved mirror() to file scope)
+
+After corrections:
+
+Shared memory tiling verified
+
+Halo loading confirmed correct
+
+Mirror boundary logic validated
+
+Kernel compiles cleanly
+
+3. Full Gaussian GPU Wrapper Implementation
+
+Implemented:
+
+GaussianGPUContext
+
+gaussian_gpu_init()
+
+gaussian_gpu_run()
+
+gaussian_gpu_destroy()
+
+Architecture mirrors grayscale GPU design:
+
+Device allocation separated from execution
+
+Only kernel launch timed
+
+Lifecycle ownership contained per branch
+
+Main pipeline now supports:
+
+1 → Grayscale
+2 → Gaussian Blur
+
+Each branch fully self-contained.
+
+4. First End-to-End Gaussian Pipeline
+
+Initial pipeline:
+
+RGB → grayscale_cpu → gaussian_gpu → save
+
+Blur output was subtle due to:
+
+3×3 kernel
+
+Radius = 1
+
+High-resolution (8K) input
+
+Confirmed kernel was working but visually mild.
+
+5. Multi-Pass Gaussian (Major Breakthrough)
+
+Implemented buffer swapping and ran Gaussian multiple times:
+
+for N passes:
+    gaussian_gpu_run(...)
+    swap(src, dst)
+
+Ran 5 passes → visibly strong blur.
+
+This validated:
+
+Shared memory tile correctness
+
+Halo correctness
+
+Mirror boundary correctness
+
+Stability across chained convolution
+
+Proper device memory reuse
+
+No corruption artifacts
+
+Multi-pass confirmed mathematical composability of Gaussian convolution.
+
+This was the first time the pipeline felt scalable and production-ready, not just demonstrative.
+
+6. Architectural Maturity Gained Today
+
+Key systems-level takeaways:
+
+Branch-contained resource management in main
+
+No cross-scope cleanup
+
+Kernel remains pure computation
+
+Wrapper handles orchestration
+
+Separation of concerns maintained
+
+Performance timing isolated to actual compute
+
+This session strengthened:
+
+Memory lifecycle discipline
+
+Shared memory confidence
+
+GPU pipeline chaining intuition
+
+7. Current Project State
+
+✅ CPU grayscale
+✅ GPU grayscale (optimized lifecycle)
+✅ Shared-memory Gaussian blur
+✅ Multi-pass Gaussian blur
+✅ Menu-based operation selection
+✅ Performance instrumentation
+✅ 8K resolution tested successfully
+
+8. Next Strategic Direction (To Decide Tomorrow)
+
+Possible next milestones:
+
+A) Sobel Edge Detection (natural convolution extension)
+B) Separable Gaussian optimization (2-pass horizontal + vertical)
+C) Histogram equalization (introduces parallel reduction concepts)
+D) Formal benchmarking + README polishing for portfolio
+E) Refactor pipeline to remain fully on GPU (chained kernels without host copy)
+
+Tomorrow we choose direction based on:
+
+Portfolio impact
+
+Learning depth
+
+Demonstrability
+
+9. Key Takeaway
+
+Today transitioned the project from:
+
+“CUDA learning exercise”
+
+to:
+
+“Structured, scalable GPU image processing pipeline.”
+
+The Gaussian blur is not just implemented — it is architecturally sound and extensible.

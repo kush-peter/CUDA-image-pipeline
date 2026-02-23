@@ -1,6 +1,12 @@
 #include <cuda_runtime.h>
 #include <cstdint>
 
+__device__ inline int mirror(int v, int limit) {
+    if (v < 0) return -v;
+    if (v >= limit) return 2 * limit - v - 2;
+    return v;
+};
+
 __global__ void gaussian_blur_3x3(
     const uint8_t* input,
     uint8_t* output,
@@ -17,11 +23,12 @@ __global__ void gaussian_blur_3x3(
     int sx = tx + 1;
     int sy = ty + 1;                           // shared mem with halo
 
-    auto mirror = [](int v, int limit) {
-        if (v < 0) return -v;
-        if (v >= limit) return 2 * limit - v - 2;       //mirror helper
-        return v;
-    };
+    // auto mirror = [](int v, int limit) {
+    //     if (v < 0) return -v;
+    //     if (v >= limit) return 2 * limit - v - 2;       //mirror helper
+    //     return v;
+    // };
+
 
     int mx = mirror(gx, width);
     int my = mirror(gy, height);
@@ -59,7 +66,7 @@ __global__ void gaussian_blur_3x3(
     }
     //topright
     if(tx==blockDim.x-1 && ty ==0){
-        tile[sy-1][sx+1] = input[mirror(gy+1, height) * width + mirror(gx+1,width)];
+        tile[sy-1][sx+1] = input[mirror(gy - 1, height) * width + mirror(gx+1,width)];
 
     }
     //bottomleft
@@ -68,7 +75,7 @@ __global__ void gaussian_blur_3x3(
     }
     //bottomright
     if(tx==blockDim.x-1 && ty==blockDim.y-1){
-        tile[sy+1][sy+1] = input[mirror(gy+1,height) * width + mirror(gx+1, width)];
+        tile[sy+1][sx+1] = input[mirror(gy+1,height) * width + mirror(gx+1, width)];
     }
     
     __syncthreads();
